@@ -1,15 +1,15 @@
 - folder: "Example"
   playlists:
     - name: "Example Playlist 1"
-      url: "https://www.youtube.com/watch?v=lUVQz6_-vxc" #"https://www.youtube.com/playlist?list=PLD954AD90548599FE"
+      url: "https://www.example.com/watch?v=lUVQz6_-vxc"
     - name: "VS Code Lovers"
-      url: "https://www.youtube.com/playlist?list=PLitlfQssIkZdsi8fex9GQme2rBWuz_04E"
+      url: "https://www.example.com/playlist?list=PLitlfQssIkZdsi8fex9GQme2rBWuz_04E"
       naming: playlist/date-title
       options:
         format: 160
         playlist-end: 2
     - name: "Bruno Audio"
-      url: "https://music.youtube.com/playlist?list=PLwBsPyRTQe_hjnDG05wg9omvdW0FsBB8p"
+      url: "https://music.example.com/playlist?list=PLwBsPyRTQe_hjnDG05wg9omvdW0FsBB8p"
       naming: playlist/default
       options:
         no-mtime:
@@ -20,7 +20,7 @@
 - folder: "Example2"
   playlists:
     - name: "Test 4"
-      url: "https://music.youtube.com/playlist?list=PLdsrNW-RAd_i00F3ZvOo2_KHYqBvBrXMw"
+      url: "https://music.example.com/playlist?list=PLdsrNW-RAd_i00F3ZvOo2_KHYqBvBrXMw"
       naming: default
       options:
         format: bestaudio
