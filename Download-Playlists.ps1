@@ -26,18 +26,32 @@ $NamingStyles = @{
 	"playlist/index-title" = "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s"
 	"playlist/default"     = "%(playlist)s/%(title)s-%(id)s.%(ext)s"
 	"default"              = "%(title)s-%(id)s.%(ext)s"
+	"root/index-title"     = "%(playlist_index)s - %(title)s.%(ext)s"	
 }
 
-
-# Test Youtube-DL
-$dlcmd = "youtube-dl"
+# Test yt-dlp
+$dlcmd = "yt-dlp"
 try {
-	Write-Debug "Checking for youtube-dl.."
-	&youtube-dl 2>$NULL
-	Write-Debug "youtube-dl found."
+	Write-Debug "Checking for ${dlcmd}.."
+	&${dlcmd} 2>$NULL
+	Write-Debug "${dlcmd} found."
 }
 catch {
-	$Raise_Error = "ERROR: Youtube-dl not found in %PATH%"; Throw $Raise_Error
+	Write-Debug "${dlcmd} not found in %PATH%. Trying youtube-dl.."
+	$dlcmd = $null
+}
+
+if (!$dlcmd) {
+	# Test Youtube-DL
+	$dlcmd = "youtube-dl"
+	try {
+		Write-Debug "Checking for youtube-dl.."
+		&youtube-dl 2>$NULL
+		Write-Debug "youtube-dl found."
+	}
+	catch {
+		$Raise_Error = "ERROR: Youtube-dl not found in %PATH%"; Throw $Raise_Error
+	}
 }
 
 # Test FFMPEG
@@ -81,7 +95,7 @@ foreach ($obj in $Yaml) {
 		$Options = @(
 			'-v',
 			'-ciw',
-			'--download-archive', $archiveFile,
+			'--download-archive', "`"$archiveFile`"",
 			'-o', "`"$($NamingStyles[$playlist.naming])`""
 			'--add-metadata'
 		)
