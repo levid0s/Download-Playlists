@@ -2,7 +2,7 @@
 playlists:
   - outPath: ./Example
     url: https://www.example.com/watch?v=lUVQz6_-vxc
-    stepTitle: "Example Playlist 1"
+    stepTitle: "Example Video (Parrot)"
   - naming: playlist/date-title
     stepTitle: "VS Code Lovers"
     options:
