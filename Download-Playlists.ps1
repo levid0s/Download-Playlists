@@ -1,5 +1,6 @@
 param(
-	[Parameter(Mandatory)][string]$YamlFile
+	[Parameter(Mandatory)][string]$YamlFile,
+	[string]$DlCmd = 'yt-dlp'
 )
 
 function Install-ModuleIfNotPresent {
@@ -26,19 +27,22 @@ $NamingStyles = @{
 	"playlist/index-title" = "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s"
 	"playlist/default"     = "%(playlist)s/%(title)s-%(id)s.%(ext)s"
 	"default"              = "%(title)s-%(id)s.%(ext)s"
-	"root/index-title"     = "%(playlist_index)s - %(title)s.%(ext)s"	
+	"root/index-title"     = "%(playlist_index)s - %(title)s.%(ext)s"
+	"root/channel-title"   = "%(channel)s - %(title)s.%(ext)s"
 }
 
-# Test yt-dlp
-$dlcmd = "yt-dlp"
-try {
-	Write-Debug "Checking for ${dlcmd}.."
-	&${dlcmd} 2>$NULL
-	Write-Debug "${dlcmd} found."
-}
-catch {
-	Write-Debug "${dlcmd} not found in %PATH%. Trying youtube-dl.."
-	$dlcmd = $null
+if (!$dlcmd) {
+	# Test yt-dlp
+	$dlcmd = "yt-dlp"
+	try {
+		Write-Debug "Checking for ${dlcmd}.."
+		&${dlcmd} 2>$NULL
+		Write-Debug "${dlcmd} found."
+	}
+	catch {
+		Write-Debug "${dlcmd} not found in %PATH%. Trying youtube-dl.."
+		$dlcmd = $null
+	}	
 }
 
 if (!$dlcmd) {
