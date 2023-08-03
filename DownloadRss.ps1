@@ -7,14 +7,6 @@ $archiveFile = "D:\Temp\Podcasts\downloaded.csv"
 
 
 # Create the directory if it doesn't already exist
-if (!(Test-Path $directory)) {
-  New-Item -ItemType Directory -Path $directory | Out-Null
-}
-
-$client = New-Object System.Net.WebClient
-
-# Download the RSS feed and parse it as XML
-[xml]$rss = $client.DownloadString($url)
 
 function Get-UrlHash {
   param(
@@ -60,33 +52,53 @@ function Record-ArchiveFile {
   Add-Content $ArchiveFile "${urlHash},${Title}"
 }
 
-# Loop through each item in the RSS feed
-foreach ($item in $rss.rss.channel.item) {
-  $mp3Url = $item.enclosure.url
-  $title = $item.title[0]
+function Download-RssFeed {
+  param(
+    [string]$Url,
+    [string]$Directory,
+    [string]$ArchiveFile
+  )
 
-  $isArchive = Check-ArchiveFile -ArchiveFile $archiveFile -Url $mp3Url
-  if ($isArchive) {
-    Write-Debug "$title is already downloaded, sipping."
-    Continue
+  if (!(Test-Path $directory)) {
+    New-Item -ItemType Directory -Path $directory | Out-Null
   }
+  
+  $client = New-Object System.Net.WebClient
+  
+  # Download the RSS feed and parse it as XML
+  [xml]$rss = $client.DownloadString($url)
 
-  $filename = "$($item.episode). $title.mp3.part" -replace '[\\/:*?"<>|]', '' # Remove the special characters
+  # Loop through each item in the RSS feed
+  foreach ($item in $rss.rss.channel.item) {
 
-  Write-Debug "Downloading $mp3Url..."
-  Write-Debug "Title: $title"
+    $mp3Url = $item.enclosure.url
+    $title = $item.title[0]
 
-  $filepath = "$directory\$filename"
-  $client.DownloadFile($mp3Url, $filepath)
-  # Check if download was successful
-  if ($client.ResponseHeaders['Content-Length'] -eq (Get-Item $filepath).Length) {
-    # Rename the file to remove the .part extension
-    Rename-Item -Path $filepath -NewName ($filepath -replace '\.part$', '') -Force | Out-Null
-    Write-Debug "COMPLETED: $title"
-    Record-ArchiveFile -ArchiveFile $archiveFile -Url $mp3Url -Title $title
-  }
-  else {
-    Write-Error "Download failed for $title"
+    # Check if the episode is already downloaded
+    $isArchive = Check-ArchiveFile -ArchiveFile $archiveFile -Url $mp3Url
+    if ($isArchive) {
+      Write-Debug "$title is already downloaded, skipping."
+      Continue
+    }
+
+    $filename = "$($item.episode). $title.mp3.part" -replace '[\\/:*?"<>|]', '' # Remove the special characters
+
+    Write-Debug "Downloading $mp3Url..."
+    Write-Debug "Title: $title"
+
+    $filepath = "$directory\$filename"
+    $client.DownloadFile($mp3Url, $filepath)
+
+    # Check if download was successful
+    if ($client.ResponseHeaders['Content-Length'] -eq (Get-Item $filepath).Length) {
+      # Rename the file to remove the .part extension
+      Rename-Item -Path $filepath -NewName ($filepath -replace '\.part$', '') -Force | Out-Null
+      Write-Debug "COMPLETED: $title"
+      Record-ArchiveFile -ArchiveFile $archiveFile -Url $mp3Url -Title $title
+    }
+    else {
+      Write-Error "Download failed for $title"
+    }
   }
 }
 
