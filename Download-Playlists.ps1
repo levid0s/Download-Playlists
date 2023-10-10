@@ -2,7 +2,7 @@
   .SYNOPSIS
     Download playlists using yt-dlp / youtube-dl
 
-  .VERSION 2023.10.02
+  .VERSION 2023.10.10
 #>
 
 param(
@@ -73,12 +73,11 @@ Start-Transcript -Path $LogPath -Append
 
 
 if (!$YamlFile -and !$YamlFiles) {
-    # Invoke File Picker
+    Write-Verbose 'Starting the Invoke-FilePicker dialog..'
     [string[]]$YamlFiles = Invoke-FilePicker -Path "$ScriptRoot/_defs" -Filter 'Yaml files (*.ya?ml)|*.yaml;*.yml' -Multiselect $true
 
-    # Display the command to the user
+    Write-Verbose 'Generating the Show-Command string..'
     $YamlInfoText = "@('" + ($YamlFiles -join "','") + "')"
-    $TempDebugPreference = $DebugPreference
     $DebugPreference = 'Continue'
     Write-Debug "Executing command:  $PSCommandPath -YamlFiles $YamlInfoText"
     $DebugPreference = $TempDebugPreference
@@ -111,6 +110,7 @@ $NamingStyles = @{
 $archiveFileName = '_downloaded.txt'
 $tempPath = "$ScriptRoot\~dl_tmp"
 $Playlists = @()
+$timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 
 if ($YamlFile) {
     $YamlFiles += $YamlFile
@@ -122,31 +122,30 @@ foreach ($YamlFile in $YamlFiles) {
     $Playlists += $Yaml.Playlists
 }
 
-$timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 
 ####
 #Region Preflight checks
 ####
 
-if ($DlCmd) {
-    if (!(Get-Command -Name $DlCmd -ErrorAction SilentlyContinue)) {
-        $Raise_Error = "ERROR: $DlCmd not found in %PATH%"; Throw $Raise_Error
-    }
-}
-else {
-    # Test yt-dlp
-    if (Get-Command -Name 'yt-dlp' -ErrorAction SilentlyContinue) {
-        $DlCmd = 'yt-dlp'
-    }
-    elseif (Get-Command -Name 'youtube-dl' -ErrorAction SilentlyContinue) {
-        $DlCmd = 'youtube-dl'
-    }
-    else {
-        $Raise_Error = "ERROR: Neither `yt-dlp` nor `youtube-dl` found in %PATH%"; Throw $Raise_Error
-    }
+[System.Collections.Generic.Queue[String]]$DlTools = @(
+    'yt-dlp', 
+    'youtube-dl'
+)
+
+while (!$DlCmd -and $DlTools) {
+    Write-Verbose "Checking for $($DlTools.Peek()).."
+    $DlCmd = $DlTools.Dequeue()
+    $DlCmd = Get-Command -Name $DlCmd -ErrorAction SilentlyContinue
+    $DlCmd = $DlCmd.Source
+    if ($DlCmd) { Write-Verbose "Found: $DlCmd" }
+    else { Write-Verbose 'Not found.' }
 }
 
-Write-Debug "Starting $dlcmd to have the binary cached."
+if (!$DlCmd) {
+    $Raise_Error = "ERROR: Neither `yt-dlp` nor `youtube-dl` were found in %PATH%."; Throw $Raise_Error
+}
+
+Write-Debug "Starting $dlcmd to cache the binary before suspending Dropbox."
 &$DlCmd --version | Out-Null
 
 # Test FFMPEG
@@ -159,7 +158,7 @@ else {
 }
 
 if (!(Get-Command -Name pssuspend -ErrorAction SilentlyContinue)) {
-    Write-Warning 'Sysinternals'' PSSuspend not found. We won''t be able to suspend the dropbox sync. Press ENTER to carry on.'
+    Write-Warning 'Sysinternals'' PSSuspend not found. We won''t be able to suspend the dropbox sync. Press ENTER to continue..'
     Read-Host | Out-Null
 }
 &pssuspend -nobanner | Out-Null
@@ -212,11 +211,11 @@ foreach ($playlist in $Playlists) {
 
     if (Test-Path $archivePath) {
         if (!(Test-Path -PathType Container $archiveBackupDir)) {
-            New-Item -ItemType Directory -Path $archiveBackupDir -Force
+            New-Item -ItemType Directory -Path $archiveBackupDir -Force -ErrorAction Stop
         }
         Copy-Item $archivePath $archiveBackupPath -Verbose
     }
-	
+
     if (!$playlist.naming) {
         # Default playlist naming style
         $playlist.naming = 'playlist/default'
@@ -226,11 +225,7 @@ foreach ($playlist in $Playlists) {
         $Raise_Error = "ERROR: Invalid naming style: $($playlist.naming)"; Throw $Raise_Error
     }
 	
-    # Default options
-    # '-v',
-	
     $Options = @(
-
         '-ciw',
         '--download-archive', "`"$archivePath`"",
         '-P', "`"$outPath`"",
@@ -268,11 +263,11 @@ foreach ($playlist in $Playlists) {
     }
 
     if ($process.ExitCode -ne 0) {
-        Write-Error "Process exited with $($process.ExitCode)"
+        Write-Error "Process: $($process.Id) $($process.Path) exited with $($process.ExitCode)"
         Start-Sleep 5
     }
 
-    $aOldHash = Get-FileHash $archiveBackupPath -Algorithm SHA256
+    $aOldHash = Get-FileHash $archiveBackupPath -Algorithm SHA256 -ErrorAction SilentlyContinue
     $aNewHash = Get-FileHash $archivePath -Algorithm SHA256
     if ($aOldHash.Hash -eq $aNewHash.Hash) {
         Write-Verbose 'Archive file unchanged. Removing backup archive file..'
