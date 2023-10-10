@@ -97,15 +97,17 @@ if ($Install) {
 Install-ModuleIfNotPresent 'PowerShell-YAML'
 
 $NamingStyles = @{
-    'playlist/date-title'  = '%(playlist)s/%(upload_date)s - %(title)s.%(ext)s'
-    'playlist/index-title' = '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s'
-    'playlist/default'     = '%(playlist)s/%(title)s-%(id)s.%(ext)s' # Default
-    'root/default'         = '%(title)s-%(id)s.%(ext)s'
-    'default'              = '%(title)s-%(id)s.%(ext)s'
-    'root/date-title'      = '%(upload_date)s - %(title)s.%(ext)s'
-    'root/index-title'     = '%(playlist_index)s - %(title)s.%(ext)s'
-    'root/channel-title'   = '%(channel)s - %(title)s.%(ext)s'
+    'playlist/date-title'     = '%(playlist)s/%(upload_date)s - %(title)s.%(ext)s'
+    'playlist/index-title'    = '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s'
+    'playlist/default'        = '%(playlist)s/%(title)s-%(id)s.%(ext)s' # Default
+    'root/default'            = '%(title)s-%(id)s.%(ext)s'
+    'default'                 = '%(title)s-%(id)s.%(ext)s'
+    'root/date-title'         = '%(upload_date)s - %(title)s.%(ext)s'
+    'root/index-title'        = '%(playlist_index)s - %(title)s.%(ext)s'
+    'root/channel-title'      = '%(channel)s - %(title)s.%(ext)s'
+    'root/date-channel-title' = '%(upload_date)s - %(channel)s - %(title)s.%(ext)s'
 }
+
 $archiveFileName = '_downloaded.txt'
 $tempPath = "$ScriptRoot\~dl_tmp"
 $Playlists = @()
@@ -193,7 +195,7 @@ foreach ($playlist in $Playlists) {
 
     $outPath = $playlist.outPath
     if (![System.IO.Path]::IsPathRooted($outPath)) {
-        $outPath = "$ScriptRoot\$outPath" | Resolve-Path
+        $outPath = "$ScriptRoot\$outPath"
     }
 
     if (!(Test-Path $outPath)) {
